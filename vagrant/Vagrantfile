@@ -1,0 +1,42 @@
+# -*- mode: ruby -*-
+# # vi: set ft=ruby :
+
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  if Vagrant.has_plugin?("vagrant-proxyconf")
+    config.proxy.http     = "http://internetgateway.cdf.atradiusnet.com:8080"
+    config.proxy.https    = "http://internetgateway.cdf.atradiusnet.com:8080"
+    config.proxy.no_proxy = "localhost,127.0.0.1,.example.com,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+  end
+
+  config.vm.define "gateway", primary:true do |gateway|
+    config.vm.box = "edgej25/clearos"
+    config.vm.box_version = "1.0.0"
+    config.vm.network "private_network", ip: "192.168.0.2"
+  end
+
+  config.vm.define "awx" do |awx|
+    awx.vm.box = "geerlingguy/centos7"
+    awx.ssh.insert_key = false
+
+    awx.vm.provider :virtualbox do |v|
+      v.memory = 4096
+      v.cpus = 2
+      v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+      v.customize ["modifyvm", :id, "--ioapic", "on"]
+    end
+
+    # AWX VM.
+    awx.vm.hostname = "awx.example.com"
+    awx.vm.network :private_network, ip: "192.168.0.3"
+
+    awx.vm.provision :ansible do |ansible|
+      ansible.compatibility_mode = "2.0"
+      ansible.playbook = "provisioning/playbook.yml"
+      ansible.inventory_path = "provisioning/inventory"
+      ansible.become = true
+    end
+  end
+end
