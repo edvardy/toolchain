@@ -6,3 +6,7 @@
 - src: geerlingguy.pip
 - src: geerlingguy.nodejs
 - src: geerlingguy.awx
+- src: geerlingguy.firewall
+- src: geerlingguy.ntp
+- src: geerlingguy.java
+- src: geerlingguy.jenkins

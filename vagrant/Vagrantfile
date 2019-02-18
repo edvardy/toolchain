@@ -12,11 +12,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   config.vm.define "gateway", primary:true do |gateway|
-    config.vm.box = "edgej25/clearos"
-    config.vm.box_version = "1.0.0"
-    config.vm.network "private_network", ip: "192.168.0.2"
+    gateway.vm.box = "edgej25/clearos"
+    gateway.vm.box_version = "1.0.0"
+    gateway.vm.network "private_network", ip: "192.168.0.2"
   end
 
+  # AWX VM.
   config.vm.define "awx" do |awx|
     awx.vm.box = "geerlingguy/centos7"
     awx.ssh.insert_key = false
@@ -28,11 +29,36 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.customize ["modifyvm", :id, "--ioapic", "on"]
     end
 
-    # AWX VM.
     awx.vm.hostname = "awx.example.com"
     awx.vm.network :private_network, ip: "192.168.0.3"
 
     awx.vm.provision :ansible do |ansible|
+      ansible.compatibility_mode = "2.0"
+      ansible.playbook = "provisioning/playbook.yml"
+      ansible.inventory_path = "provisioning/inventory"
+      ansible.become = true
+    end
+  end
+
+  # Jenkins VM
+  config.vm.define :jenkins do |jenkins|
+    jenkins.vm.box = "geerlingguy/ubuntu1604"
+    jenkins.ssh.insert_key = false
+    jenkins.vm.synced_folder ".", "/vagrant", disabled: true
+
+    jenkins.vm.provider :virtualbox do |v|
+      v.name = "jenkins"
+      v.memory = 512
+      v.cpus = 2
+      v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+      v.customize ["modifyvm", :id, "--ioapic", "on"]
+    end
+
+    jenkins.vm.hostname = "jenkins"
+    jenkins.vm.network :private_network, ip: "192.168.0.4"
+
+    # Ansible provisioner.
+    jenkins.vm.provision "ansible" do |ansible|
       ansible.compatibility_mode = "2.0"
       ansible.playbook = "provisioning/playbook.yml"
       ansible.inventory_path = "provisioning/inventory"
